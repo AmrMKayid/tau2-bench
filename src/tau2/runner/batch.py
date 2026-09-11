@@ -691,7 +691,9 @@ def run_tasks(
             if hallucination_retries > 0 and is_full_duplex:
                 hallucination_retry_count = 0
                 while hallucination_retry_count < hallucination_retries:
-                    h_check = check_hallucination(result, task)
+                    h_check = check_hallucination(
+                        result, task, review_model=config.review_model
+                    )
                     result.hallucination_check = h_check
 
                     if not h_check.hallucination_found:

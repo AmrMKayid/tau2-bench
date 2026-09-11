@@ -163,6 +163,7 @@ class FullDuplexHallucinationReviewer:
         cls,
         task: Task,
         full_trajectory: list[Tick],
+        review_model: str | None = None,
     ) -> HallucinationCheck:
         """
         Check whether the user simulator hallucinated information.
@@ -194,7 +195,7 @@ class FullDuplexHallucinationReviewer:
         ]
 
         assistant_message = generate(
-            model=DEFAULT_LLM_EVAL_USER_SIMULATOR,
+            model=review_model or DEFAULT_LLM_EVAL_USER_SIMULATOR,
             messages=messages,
             call_name="llm_judge_hallucination_check",
         )

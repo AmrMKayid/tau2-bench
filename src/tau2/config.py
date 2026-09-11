@@ -39,7 +39,9 @@ DEFAULT_LLM_ENV_INTERFACE = "gpt-4.1-2025-04-14"
 DEFAULT_LLM_ENV_INTERFACE_TEMPERATURE = 0.0
 DEFAULT_LLM_ENV_INTERFACE_ARGS = {"temperature": DEFAULT_LLM_ENV_INTERFACE_TEMPERATURE}
 
-DEFAULT_LLM_EVAL_USER_SIMULATOR = "claude-opus-4-5"
+# Our own pool, so an eval run costs no third-party credits. litellm needs the
+# openai/ prefix to route it through OPENAI_API_BASE.
+DEFAULT_LLM_EVAL_USER_SIMULATOR = "openai/nur-llm-v1"
 
 # LLM debug logging
 DEFAULT_LLM_LOG_MODE = "latest"  # Options: "all", "latest"
