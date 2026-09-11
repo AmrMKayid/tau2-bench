@@ -4,6 +4,7 @@
 from pathlib import Path
 from typing import Optional
 
+from tau2.config import DEFAULT_VOICE_SYNTHESIS_PROVIDER
 from tau2.utils.utils import DATA_DIR
 
 # Data directories
@@ -30,7 +31,9 @@ def resolve_burst_noise_paths(filenames: list[str]) -> list[Path]:
 
 
 # Voice Synthesis & Transcription
-DEFAULT_VOICE_SYNTHESIS_PROVIDER = "elevenlabs"
+# Re-exported from config.py rather than restated: this module had its own copy,
+# so a provider set in one place was ignored by readers of the other.
+DEFAULT_VOICE_SYNTHESIS_PROVIDER = DEFAULT_VOICE_SYNTHESIS_PROVIDER
 DEFAULT_TRANSCRIPTION_MODEL = "nova-3"
 ASSUMED_TURNS_PER_MINUTE = 10
 ELEVENLABS_ENABLE_AUDIO_TAGS = True

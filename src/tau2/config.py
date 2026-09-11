@@ -1,3 +1,5 @@
+import os
+
 # =============================================================================
 # SIMULATION DEFAULTS (overridable via CLI)
 # =============================================================================
@@ -74,7 +76,11 @@ TELEPHONY_ULAW_SILENCE = b"\x7f"  # μ-law silence byte
 # VOICE DEFAULTS (overridable via CLI, legacy half-duplex mode)
 # =============================================================================
 DEFAULT_VOICE_ENABLED = False
-DEFAULT_VOICE_SYNTHESIS_PROVIDER = "elevenlabs"
+# "elevenlabs" is the official tau-voice user simulator. "eesi" swaps in EESI
+# TTS so a run needs no ElevenLabs account -- a different user simulator, so
+# its scores are not comparable to the leaderboard. Env-overridable because
+# that choice belongs to the run, not to the checkout.
+DEFAULT_VOICE_SYNTHESIS_PROVIDER = os.environ.get("TAU2_TTS_PROVIDER", "elevenlabs")
 DEFAULT_VOICE_TRANSCRIPTION_MODEL = "nova-3"
 DEFAULT_VOICE_MODEL = "eleven_v3"
 
@@ -199,6 +205,8 @@ DEFAULT_EESI_REALTIME_BASE_URL = (
     "wss://api.dev.eesi.ai/v1/realtime"  # overridable: EESI_REALTIME_URL
 )
 DEFAULT_EESI_REALTIME_MODEL = "nur-realtime-v1"  # overridable: EESI_REALTIME_MODEL
+DEFAULT_EESI_API_URL = "https://api.dev.eesi.ai/v1"  # overridable: EESI_API_URL
+DEFAULT_EESI_TTS_MODEL = "nur-tts-v1"  # overridable: provider_config.model_id
 
 # =============================================================================
 # PROVIDER REGISTRY (derived from above)

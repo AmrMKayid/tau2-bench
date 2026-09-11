@@ -4,9 +4,9 @@
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, model_validator
 
-from tau2.config import DEFAULT_SEED
+from tau2.config import DEFAULT_EESI_TTS_MODEL, DEFAULT_SEED
 from tau2.data_model.audio import AudioEncoding, AudioFormat
 from tau2.data_model.audio_effects import (
     ChannelEffectsConfig,
@@ -98,6 +98,19 @@ class ElevenLabsTTSConfig(BaseModel):
     seed: Optional[int] = Field(default=None)
 
 
+class EesiTTSConfig(ElevenLabsTTSConfig):
+    """TTS through EESI's /v1/audio/speech.
+
+    Same shape as the ElevenLabs config -- ``voice_id`` is an EESI voice id
+    (``ev_1a2b3c4d``, from ``GET /v1/voices``) rather than an ElevenLabs one --
+    with two defaults changed: the model, and audio tags off. ``[cough]`` and
+    friends are an ElevenLabs v3 feature; any other engine speaks them aloud.
+    """
+
+    model_id: str = Field(default=DEFAULT_EESI_TTS_MODEL)
+    insert_audio_tags: bool = Field(default=False)
+
+
 ProviderConfig = ElevenLabsTTSConfig
 
 
@@ -109,8 +122,8 @@ ProviderConfig = ElevenLabsTTSConfig
 class SynthesisConfig(BaseModel):
     """Voice synthesis configuration with 3-tier effect taxonomy."""
 
-    provider: str = Field(default="elevenlabs")
-    provider_config: Optional[ProviderConfig] = Field(default=ElevenLabsTTSConfig())
+    provider: str = Field(default=DEFAULT_VOICE_SYNTHESIS_PROVIDER)
+    provider_config: Optional[ProviderConfig] = Field(default=None)
     channel_effects_config: ChannelEffectsConfig = Field(
         default_factory=ChannelEffectsConfig
     )
@@ -120,6 +133,15 @@ class SynthesisConfig(BaseModel):
     speech_effects_config: SpeechEffectsConfig = Field(
         default_factory=SpeechEffectsConfig
     )
+
+    @model_validator(mode="after")
+    def _default_provider_config(self) -> "SynthesisConfig":
+        """Fill in the provider's own config when none was given."""
+        if self.provider_config is None:
+            self.provider_config = (
+                EesiTTSConfig() if self.provider == "eesi" else ElevenLabsTTSConfig()
+            )
+        return self
 
 
 class SynthesisResult(BaseModel):
@@ -324,12 +346,16 @@ class VoiceSettings(BaseModel):
         no_audio_tags: bool = not ELEVENLABS_ENABLE_AUDIO_TAGS,
     ) -> "VoiceSettings":
         """Create a VoiceSettings instance from CLI arguments."""
-        if voice_synthesis_provider != "elevenlabs":
+        if voice_synthesis_provider not in ("elevenlabs", "eesi"):
             raise ValueError(
                 f"Unsupported voice synthesis provider: {voice_synthesis_provider}"
             )
 
-        provider_config = ElevenLabsTTSConfig()
+        provider_config = (
+            EesiTTSConfig()
+            if voice_synthesis_provider == "eesi"
+            else ElevenLabsTTSConfig()
+        )
         provider_config.insert_audio_tags = not no_audio_tags
         provider_config.audio_tags_probability = audio_tags_prob
 
