@@ -1,5 +1,13 @@
 import os
 
+from dotenv import load_dotenv
+
+# Loaded here, not only in utils.py: this module reads the environment at import
+# time and is imported before utils, so without this a setting that lives in
+# .env is invisible to every default below it -- the value silently falls back
+# while the .env line looks like it was applied.
+load_dotenv()
+
 # =============================================================================
 # SIMULATION DEFAULTS (overridable via CLI)
 # =============================================================================
