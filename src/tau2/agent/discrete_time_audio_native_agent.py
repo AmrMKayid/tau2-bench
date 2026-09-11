@@ -80,7 +80,9 @@ from tau2.voice.audio_native.adapter import DiscreteTimeAdapter, create_adapter
 from tau2.voice.audio_native.tick_result import TickResult
 
 # Provider type alias
-AudioNativeProvider = Literal["openai", "gemini", "xai", "nova", "qwen", "livekit"]
+AudioNativeProvider = Literal[
+    "openai", "eesi", "gemini", "xai", "nova", "qwen", "livekit"
+]
 
 # VAD config union type (string annotations for lazy resolution)
 VADConfig = Union[
@@ -266,7 +268,8 @@ class DiscreteTimeAudioNativeAgent(FullDuplexAgent[DiscreteTimeAgentState]):
         # pulling in websockets/aiohttp when voice extras aren't installed)
         if vad_config is not None:
             self.vad_config = vad_config
-        elif provider == "openai":
+        elif provider in ("openai", "eesi"):
+            # EESI's endpoint takes OpenAI's turn-detection block verbatim.
             from tau2.voice.audio_native.openai.provider import (
                 OpenAIVADConfig,
                 OpenAIVADMode,

@@ -189,6 +189,18 @@ DEFAULT_QWEN_INPUT_SAMPLE_RATE = 16000  # fixed, API-defined
 DEFAULT_QWEN_OUTPUT_SAMPLE_RATE = 24000  # fixed, API-defined
 
 # =============================================================================
+# EESI PROVIDER (overridable endpoint/model, OpenAI-Realtime-compatible)
+# =============================================================================
+# EESI's /v1/realtime speaks the GA OpenAI Realtime protocol, so the EESI
+# provider is the OpenAI one pointed elsewhere. The endpoint is overridable
+# because the same benchmark has to run against the dev deployment, production,
+# and the bare speech orchestrator (no gateway in front of it).
+DEFAULT_EESI_REALTIME_BASE_URL = (
+    "wss://api.dev.eesi.ai/v1/realtime"  # overridable: EESI_REALTIME_URL
+)
+DEFAULT_EESI_REALTIME_MODEL = "nur-realtime-v1"  # overridable: EESI_REALTIME_MODEL
+
+# =============================================================================
 # PROVIDER REGISTRY (derived from above)
 # =============================================================================
 DEFAULT_AUDIO_NATIVE_MODELS = {
@@ -197,6 +209,7 @@ DEFAULT_AUDIO_NATIVE_MODELS = {
     "xai": DEFAULT_XAI_MODEL,
     "nova": DEFAULT_NOVA_MODEL,
     "qwen": DEFAULT_QWEN_MODEL,
+    "eesi": DEFAULT_EESI_REALTIME_MODEL,
     "livekit": "dummy",
 }
 
@@ -206,6 +219,7 @@ DEFAULT_AUDIO_NATIVE_REASONING_EFFORT: dict[str, str | None] = {
     "xai": None,
     "nova": None,
     "qwen": None,
+    "eesi": None,
     "livekit": None,
 }
 
@@ -215,6 +229,7 @@ AUDIO_NATIVE_PROVIDER_TYPES = {
     "xai": "audio_native",
     "nova": "audio_native",
     "qwen": "audio_native",
+    "eesi": "audio_native",
     "livekit": "cascaded",
 }
 
