@@ -33,6 +33,32 @@ load_dotenv()
 RESPONSE_FORMAT = "wav"
 REQUEST_TIMEOUT_SECONDS = 120
 
+#: A turn the engine has nothing to say for -- ``[pause]``, a lone ``...``, a
+#: backchannel the model renders as no speech -- comes back as a WAV with zero
+#: frames. The streaming user simulator refuses a message with no audio and the
+#: whole simulation is retried from scratch (five minutes of a capped task,
+#: three times over). Silence is what that turn meant, so hand back silence:
+#: at least this long, and a little longer for longer text.
+SILENCE_MIN_SECONDS = 0.4
+SILENCE_SECONDS_PER_CHAR = 0.05
+SILENCE_MAX_SECONDS = 1.5
+SILENCE_SAMPLE_RATE = 24_000
+
+
+def silence_for(text: str, sample_rate: int = SILENCE_SAMPLE_RATE) -> AudioData:
+    """PCM_S16LE mono silence standing in for a turn that produced no speech."""
+    seconds = min(
+        SILENCE_MAX_SECONDS,
+        max(SILENCE_MIN_SECONDS, len(text.strip()) * SILENCE_SECONDS_PER_CHAR),
+    )
+    frames = b"\x00\x00" * int(seconds * sample_rate)
+    return AudioData(
+        data=frames,
+        format=AudioFormat(
+            encoding=AudioEncoding.PCM_S16LE, sample_rate=sample_rate, channels=1
+        ),
+    )
+
 
 def _strip_elevenlabs_tags(text: str) -> str:
     """Remove ``[cough]``-style tags, which only ElevenLabs v3 understands.
@@ -81,9 +107,14 @@ def tts_eesi(
     url = (base_url or os.getenv("EESI_API_URL") or DEFAULT_EESI_API_URL).rstrip("/")
     model = config.model_id or DEFAULT_EESI_TTS_MODEL
 
+    spoken = _strip_elevenlabs_tags(text)
+    if not spoken.strip(". "):
+        logger.debug(f"EESI TTS: nothing to say for '{text}', returning silence")
+        return silence_for(text)
+
     payload = {
         "model": model,
-        "input": _strip_elevenlabs_tags(text),
+        "input": spoken,
         "voice": voice_id,
         "response_format": RESPONSE_FORMAT,
     }
@@ -118,6 +149,12 @@ def tts_eesi(
         raise ValueError(
             f"EESI TTS returned {sample_width * 8}-bit audio; expected 16-bit PCM"
         )
+
+    if not frames:
+        logger.warning(
+            f"EESI TTS returned no audio for '{text_preview}', substituting silence"
+        )
+        return silence_for(text, sample_rate=sample_rate)
 
     logger.debug(f"EESI TTS: {len(frames)} bytes at {sample_rate} Hz")
     return AudioData(
