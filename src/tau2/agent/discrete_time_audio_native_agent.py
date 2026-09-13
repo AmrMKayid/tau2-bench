@@ -39,6 +39,7 @@ See docs/architecture/discrete_time_audio_native_agent.md for design details.
 """
 
 import base64
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union
 
@@ -353,10 +354,50 @@ class DiscreteTimeAudioNativeAgent(FullDuplexAgent[DiscreteTimeAgentState]):
         else:
             agent_instruction = AUDIO_NATIVE_VOICE_INSTRUCTION
 
-        return template.format(
+        prompt = template.format(
             agent_instruction=agent_instruction,
             domain_policy=self.domain_policy,
         )
+        return self._apply_eesi_instructions_prefix(prompt)
+
+    def _apply_eesi_instructions_prefix(self, prompt: str) -> str:
+        """Prepend ``TAU2_EESI_INSTRUCTIONS_PREFIX_FILE`` for the EESI provider.
+
+        A candidate knob for the EESI loop: the file's contents go in front of
+        the benchmark's own voice instructions and domain policy, so a
+        prompt-level change can be A/B'd without editing the vendored
+        templates. It only applies when the agent speaks to EESI; other
+        providers get the untouched benchmark prompt so their numbers stay
+        comparable to the leaderboard.
+        """
+        prefix_file = os.environ.get("TAU2_EESI_INSTRUCTIONS_PREFIX_FILE")
+        if not prefix_file:
+            return prompt
+        if self.provider != "eesi":
+            logger.warning(
+                f"TAU2_EESI_INSTRUCTIONS_PREFIX_FILE is set but provider is "
+                f"{self.provider!r}, not 'eesi'; prompt unchanged"
+            )
+            return prompt
+        try:
+            prefix = Path(prefix_file).read_text(encoding="utf-8")
+        except OSError as e:
+            logger.warning(
+                f"TAU2_EESI_INSTRUCTIONS_PREFIX_FILE={prefix_file!r} is not "
+                f"readable ({e}); prompt unchanged"
+            )
+            return prompt
+        prefix = prefix.strip()
+        if not prefix:
+            logger.warning(
+                f"TAU2_EESI_INSTRUCTIONS_PREFIX_FILE={prefix_file!r} is empty; "
+                "prompt unchanged"
+            )
+            return prompt
+        logger.info(
+            f"EESI instructions prefix applied from {prefix_file} ({len(prefix)} chars)"
+        )
+        return f"{prefix}\n\n{prompt}"
 
     @property
     def adapter(self) -> DiscreteTimeAdapter:
